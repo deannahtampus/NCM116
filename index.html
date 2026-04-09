@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NCM 116 Grade Checker</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #f4f6fb;
+  --surface: #edf0f7;
+  --card: #ffffff;
+  --border: #dde2ee;
+  --border2: #c8d0e4;
+  --accent: #2563eb;
+  --accent2: #4f46e5;
+  --green: #16a34a;
+  --green-dim: rgba(22,163,74,.10);
+  --red: #dc2626;
+  --red-dim: rgba(220,38,38,.10);
+  --yellow: #d97706;
+  --yellow-dim: rgba(217,119,6,.10);
+  --purple: #9333ea;
+  --purple-dim: rgba(147,51,234,.08);
+  --teal: #0d9488;
+  --teal-dim: rgba(13,148,136,.08);
+  --orange: #ea580c;
+  --orange-dim: rgba(234,88,12,.08);
+  --text: #1e2535;
+  --text2: #4b5675;
+  --text3: #8b95b0;
+  --radius: 14px;
+  --shadow: 0 2px 16px rgba(30,37,53,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;padding:0 16px 80px;}
+
+/* HEADER */
+.hdr{max-width:780px;margin:0 auto;padding:32px 0 24px;border-bottom:1px solid var(--border);margin-bottom:28px;}
+.hdr-school{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.hdr-title{font-size:clamp(22px,5vw,30px);font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr-sub{font-size:13px;color:var(--text2);margin-top:4px;}
+.hdr-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:var(--accent);font-size:11px;font-weight:600;letter-spacing:.06em;padding:4px 12px;border-radius:20px;margin-top:10px;}
+
+/* TABS */
+.tabs{max-width:780px;margin:0 auto 24px;display:flex;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:4px;}
+.tab-btn{flex:1;padding:9px 12px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.tab-btn.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(30,37,53,.12);}
+
+/* PANEL */
+.panel{max-width:780px;margin:0 auto;display:none;}
+.panel.active{display:block;}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px 26px 22px;margin-bottom:16px;}
+.card-label{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;}
+
+/* INPUTS */
+input[type=text],input[type=password],input[type=number]{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:10px;
+  color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;
+  padding:11px 14px;outline:none;width:100%;
+  transition:border-color .2s,box-shadow .2s;
+}
+input[type=text].mono,input[type=password].mono{font-family:'JetBrains Mono',monospace;font-size:16px;letter-spacing:.04em;}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.15);}
+input::placeholder{color:var(--text3);font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;}
+select{background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;padding:5px 8px;outline:none;}
+
+/* BUTTONS */
+.btn{border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;padding:10px 20px;transition:all .15s;letter-spacing:.01em;}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);}
+.btn-ghost{background:var(--surface);color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--accent);}
+.btn-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+.btn-green:hover{background:rgba(34,197,94,.2);}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.btn-sm{padding:6px 13px;font-size:12px;border-radius:7px;}
+.row{display:flex;gap:10px;}
+
+/* MESSAGES */
+.msg{border-radius:9px;padding:11px 16px;font-size:13px;font-weight:500;margin-top:12px;}
+.msg-err{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.25);animation:shake .25s;}
+.msg-ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,.25);animation:pop .3s;}
+.msg-info{background:rgba(59,130,246,.1);color:var(--accent);border:1px solid rgba(59,130,246,.2);}
+@keyframes shake{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}70%{transform:translateX(5px)}}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── STUDENT RESULT ─── */
+.result-wrap{animation:pop .35s cubic-bezier(.4,0,.2,1);}
+.result-head{background:linear-gradient(135deg,#1e3a8a,#2563eb);border:1px solid var(--border2);border-radius:var(--radius) var(--radius) 0 0;padding:22px 26px 18px;}
+.result-name{font-size:20px;font-weight:800;color:#ffffff;margin-bottom:4px;}
+.result-meta{font-size:11px;color:rgba(255,255,255,.7);font-family:'JetBrains Mono',monospace;display:flex;gap:16px;flex-wrap:wrap;}
+.result-body{background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:24px 26px;}
+
+/* period tabs inside result */
+.period-nav{display:flex;gap:4px;margin-bottom:20px;background:var(--surface);border-radius:9px;padding:4px;}
+.period-nav-btn{flex:1;padding:8px 10px;border:none;border-radius:6px;background:transparent;color:var(--text2);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;}
+.period-nav-btn.active{background:var(--card);color:var(--text);box-shadow:0 2px 6px rgba(30,37,53,.12);}
+.period-nav-btn.has-data::after{content:'●';font-size:6px;margin-left:4px;vertical-align:middle;color:var(--accent);}
+.period-nav-btn.pending::after{content:'○';font-size:6px;margin-left:4px;vertical-align:middle;color:var(--text3);}
+.period-nav-btn.final-tab{background:rgba(37,99,235,.07);color:var(--accent);font-weight:700;}
+.period-nav-btn.final-tab.active{background:var(--accent);color:#fff;}
+
+.period-panel{display:none;}
+.period-panel.active{display:block;}
+
+/* breakdown card inside period */
+.breakdown-card{border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:14px;}
+.bk-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);}
+.bk-title{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+.bk-pct{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:3px 9px;border-radius:20px;}
+.bk-body{padding:14px 16px;}
+.bk-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px;}
+.score-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 11px;}
+.score-item-label{font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:500;}
+.score-item-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:var(--text);}
+.score-item-max{font-size:10px;color:var(--text3);margin-left:2px;}
+
+.bk-subtotal{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:8px;margin-top:4px;}
+.bk-subtotal-label{font-size:12px;font-weight:600;color:var(--text2);}
+.bk-subtotal-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;}
+
+/* class standing = green, periodic = yellow */
+.bk-cs .bk-header{background:rgba(34,197,94,.07);}
+.bk-cs .bk-title{color:var(--green);}
+.bk-cs .bk-pct{background:var(--green-dim);color:var(--green);}
+.bk-cs .bk-subtotal{background:var(--green-dim);}
+.bk-cs .bk-subtotal-val{color:var(--green);}
+
+.bk-pt .bk-header{background:rgba(245,158,11,.07);}
+.bk-pt .bk-title{color:var(--yellow);}
+.bk-pt .bk-pct{background:var(--yellow-dim);color:var(--yellow);}
+.bk-pt .bk-subtotal{background:var(--yellow-dim);}
+.bk-pt .bk-subtotal-val{color:var(--yellow);}
+
+/* period average bar */
+.period-result{background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(99,102,241,.1));border:1px solid rgba(59,130,246,.25);border-radius:11px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.period-result-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+.period-result-val{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--accent);}
+.period-formula{font-size:11px;color:var(--text3);font-style:italic;}
+
+/* final rating */
+.final-banner{border-radius:11px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:4px;}
+.final-passed{background:var(--green-dim);border:1px solid rgba(34,197,94,.3);}
+.final-failed{background:var(--red-dim);border:1px solid rgba(239,68,68,.3);}
+.final-inc{background:var(--yellow-dim);border:1px solid rgba(245,158,11,.3);}
+.final-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+.final-val{font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;}
+.final-passed .final-val{color:var(--green);}
+.final-failed .final-val{color:var(--red);}
+.final-inc .final-val{color:var(--yellow);}
+.final-pill{font-size:14px;font-weight:700;padding:8px 18px;border-radius:24px;}
+.final-passed .final-pill{background:rgba(34,197,94,.15);color:var(--green);}
+.final-failed .final-pill{background:rgba(239,68,68,.12);color:var(--red);}
+.final-inc .final-pill{background:rgba(245,158,11,.12);color:var(--yellow);}
+
+.pending-state{text-align:center;padding:32px 20px;color:var(--text3);}
+.pending-state .big-icon{font-size:32px;margin-bottom:8px;}
+.pending-state p{font-size:13px;}
+
+/* ─── TEACHER ADMIN ─── */
+.t-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;}
+.admin-tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface);white-space:nowrap;}
+thead th.group-cs{border-top:3px solid var(--green);color:var(--green);}
+thead th.group-pt{border-top:3px solid var(--yellow);color:var(--yellow);}
+thead th.group-calc{border-top:3px solid var(--accent);color:var(--accent);}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:rgba(37,99,235,.03);}
+tbody td input[type=number]{background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 7px;width:60px;outline:none;}
+tbody td input[type=number]:focus{border-color:var(--accent);}
+.mono-cell{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);}
+.name-cell{font-weight:600;font-size:12px;min-width:150px;}
+.calc-cell{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);}
+
+/* ID mgmt */
+.id-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.id-tbl th{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface);}
+.id-tbl td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.id-tbl tr:last-child td{border-bottom:none;}
+.id-tbl tr:hover td{background:rgba(37,99,235,.03);}
+.id-tbl td input[type=text]{font-family:'JetBrains Mono',monospace;font-size:12px;padding:5px 9px;border-radius:6px;width:140px;background:var(--surface);border:1px solid var(--border);color:var(--text);}
+.id-tbl td input[type=text]:focus{border-color:var(--accent);}
+.id-set{border-color:rgba(34,197,94,.5)!important;color:var(--green)!important;}
+.sec-3b{background:rgba(59,130,246,.15);color:var(--accent);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
+.sec-3d{background:rgba(249,115,22,.12);color:var(--orange);font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
+
+.info-box{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.18);border-radius:9px;padding:12px 16px;font-size:13px;color:var(--accent);margin-bottom:16px;line-height:1.6;}
+.tools-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.save-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center;}
+.rec-count{font-size:12px;color:var(--text3);}
+hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0;}
+
+/* CID sub-tabs */
+.cid-tab{background:transparent;color:var(--text2);border:none;font-weight:600;}
+.cid-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 6px rgba(30,37,53,.1);}
+.share-row{display:grid;grid-template-columns:2fr 1fr 1.2fr;gap:12px;padding:9px 16px;border-bottom:1px solid var(--border);align-items:center;font-size:13px;}
+.share-row:last-child{border-bottom:none;}
+.share-row:hover{background:rgba(37,99,235,.03);}
+.share-code{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--accent);}
+.share-no-code{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);}
+.paste-row-ok{display:grid;grid-template-columns:2fr 1fr 1.2fr;gap:12px;padding:7px 14px;font-size:12px;border-bottom:1px solid var(--border);align-items:center;}
+.paste-row-ok:last-child{border-bottom:none;}
+.paste-row-err{padding:7px 14px;font-size:12px;color:var(--red);border-bottom:1px solid var(--border);}
+
+/* DROP ZONE */
+#drop-zone{position:relative;border:2.5px dashed var(--border2);border-radius:14px;padding:40px 24px;text-align:center;background:var(--surface);transition:all .2s;cursor:pointer;}
+#drop-zone:hover,#drop-zone.dz-over{border-color:var(--accent);background:rgba(37,99,235,.05);}
+.dz-icon{font-size:40px;margin-bottom:10px;}
+.dz-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.dz-sub{font-size:13px;color:var(--text3);}
+
+/* UPLOAD LOG */
+.upload-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:10px;margin-bottom:8px;border:1px solid var(--border);}
+.upload-item.ok{background:var(--green-dim);border-color:rgba(22,163,74,.2);}
+.upload-item.err{background:var(--red-dim);border-color:rgba(220,38,38,.2);}
+.upload-item.warn{background:var(--yellow-dim);border-color:rgba(217,119,6,.2);}
+.upload-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.upload-detail{flex:1;}
+.upload-filename{font-weight:700;font-size:13px;margin-bottom:3px;}
+.upload-item.ok .upload-filename{color:var(--green);}
+.upload-item.err .upload-filename{color:var(--red);}
+.upload-item.warn .upload-filename{color:var(--yellow);}
+.upload-stats{font-size:12px;color:var(--text2);line-height:1.6;}
+.upload-row{display:flex;align-items:center;gap:6px;font-size:12px;margin-top:2px;}
+
+@media(max-width:500px){
+  .card,.result-body{padding:16px;}
+  .result-head{padding:16px;}
+  .bk-items{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-school">St. Anthony's College · San Jose, Antique</div>
+  <div class="hdr-title">NCM 116 Grade Checker</div>
+  <div class="hdr-sub">Collegiate Department · Instructor: Deannah Lou F. Tampus, MAN, RN</div>
+  <div class="hdr-badge">📅 2nd Semester · A.Y. 2025–2026</div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('student')">🎓 Student View</button>
+  <button class="tab-btn" onclick="switchTab('teacher')">🔐 Teacher Panel</button>
+</div>
+
+<!-- ═══════════════ STUDENT PANEL ═══════════════ -->
+<div id="panel-student" class="panel active">
+  <div class="card">
+    <div class="card-label">Grade Lookup</div>
+    <div class="row">
+      <input type="text" id="stu-id" class="mono" placeholder="Enter your Lookup Code…" autocomplete="off" onkeydown="if(event.key==='Enter')stuLookup()">
+      <button class="btn btn-primary" onclick="stuLookup()">Check →</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:8px;">Enter the private code given to you by your teacher.</p>
+    <div id="stu-err"></div>
+  </div>
+  <div id="stu-result"></div>
+</div>
+
+<!-- ═══════════════ TEACHER PANEL ═══════════════ -->
+<div id="panel-teacher" class="panel">
+
+  <div id="t-login" class="card">
+    <div class="card-label">Teacher Login</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Enter your password to manage grades and student IDs.</p>
+    <div class="row">
+      <input type="password" id="t-pass" class="mono" placeholder="Password…" onkeydown="if(event.key==='Enter')tLogin()">
+      <button class="btn btn-primary" onclick="tLogin()">Unlock</button>
+    </div>
+    <div id="t-login-err"></div>
+    <p style="font-size:12px;color:var(--text3);margin-top:10px;">Default: <span style="font-family:'JetBrains Mono',monospace;background:var(--surface);padding:2px 7px;border-radius:4px;">teacher123</span></p>
+  </div>
+
+  <div id="t-content" style="display:none;">
+    <div class="card" style="padding:14px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div style="font-weight:700;font-size:14px;">👩‍🏫 Teacher Panel</div>
+        <div class="t-nav">
+          <button class="btn btn-ghost btn-sm" onclick="tShow('upload')">📤 Upload Gradesheet</button>
+          <button class="btn btn-ghost btn-sm" onclick="tShow('ids')">📋 Student IDs</button>
+          <button class="btn btn-ghost btn-sm" onclick="tShow('customids')">🔑 Lookup Codes</button>
+          <button class="btn btn-ghost btn-sm" onclick="tShow('grades')">✏️ Edit Grades</button>
+          <button class="btn btn-ghost btn-sm" onclick="tShow('pass')">🔒 Password</button>
+          <button class="btn btn-danger btn-sm" onclick="tLogout()">Exit</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Gradesheet -->
+    <div id="t-upload" class="card" style="display:none;">
+      <div class="card-label">Upload Gradesheet</div>
+      <div class="info-box" style="margin-bottom:18px;">
+        📂 Upload your <strong>.xlsm or .xlsx</strong> gradesheet files (3B and/or 3D). The app will automatically read the <strong>GRADESHEET</strong> sheet and update student grades. Your Lookup Codes are preserved — only grades are updated.
+      </div>
+
+      <!-- Drop zone -->
+      <div id="drop-zone"
+        ondragover="event.preventDefault();this.classList.add('dz-over')"
+        ondragleave="this.classList.remove('dz-over')"
+        ondrop="handleDrop(event)">
+        <div class="dz-icon">📋</div>
+        <div class="dz-title">Drag &amp; drop your gradesheet here</div>
+        <div class="dz-sub">or click to browse</div>
+        <input type="file" id="file-input" accept=".xlsm,.xlsx,.xls" multiple onchange="handleFiles(this.files)" style="position:absolute;inset:0;opacity:0;cursor:pointer;">
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;">
+        <label class="btn btn-primary" style="cursor:pointer;display:inline-block;">
+          📁 Browse Files
+          <input type="file" accept=".xlsm,.xlsx,.xls" multiple onchange="handleFiles(this.files)" style="display:none;">
+        </label>
+        <span style="font-size:12px;color:var(--text3);">Accepts: 3B.xlsm, 3D.xlsm (or any .xlsx/.xlsm)</span>
+      </div>
+
+      <!-- Upload log -->
+      <div id="upload-log" style="display:none;margin-top:18px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;">Upload Results</div>
+        <div id="upload-log-items"></div>
+      </div>
+    </div>
+
+    <!-- Student ID List -->
+    <div id="t-ids" class="card">
+      <div class="card-label">Student ID Reference</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Original school IDs alongside their current Lookup Codes.</p>
+      <input type="text" id="ids-search" placeholder="Search…" oninput="renderIdList()" style="margin-bottom:12px;">
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;">
+        <table class="id-tbl">
+          <thead><tr><th>#</th><th>School ID</th><th>Lookup Code</th><th>Name</th><th>Sec</th></tr></thead>
+          <tbody id="ids-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Manage Lookup Codes -->
+    <div id="t-customids" class="card" style="display:none;">
+      <div class="card-label">Manage Lookup Codes</div>
+
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:4px;background:var(--surface);border-radius:9px;padding:4px;margin-bottom:18px;">
+        <button class="btn btn-sm cid-tab active" id="cidtab-edit" onclick="showCidTab('edit')">✏️ Assign Codes</button>
+        <button class="btn btn-sm cid-tab" id="cidtab-share" onclick="showCidTab('share')">📋 Copy &amp; Share</button>
+        <button class="btn btn-sm cid-tab" id="cidtab-paste" onclick="showCidTab('paste')">📥 Bulk Paste</button>
+      </div>
+
+      <!-- TAB: Assign Codes -->
+      <div id="cidpanel-edit">
+        <div class="info-box">💡 Assign a private <strong>Lookup Code</strong> to each student. This is what they type to check their grades — not their school ID. Use <strong>🎲 Random All</strong> to auto-generate codes for everyone at once.</div>
+        <div class="tools-row">
+          <input type="text" id="cid-search" placeholder="Search by name…" oninput="renderCidTable()" style="max-width:200px;">
+          <button class="btn btn-green btn-sm" onclick="genAllRandom()">🎲 Random All</button>
+          <button class="btn btn-primary btn-sm" onclick="saveCids()">💾 Save Codes</button>
+        </div>
+        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;">
+          <table class="id-tbl">
+            <thead><tr><th>#</th><th>Name</th><th>Sec</th><th>School ID</th><th>Lookup Code</th><th></th></tr></thead>
+            <tbody id="cid-body"></tbody>
+          </table>
+        </div>
+        <div class="save-row">
+          <button class="btn btn-primary" onclick="saveCids()">💾 Save Codes</button>
+        </div>
+        <div id="cid-msg"></div>
+      </div>
+
+      <!-- TAB: Copy & Share -->
+      <div id="cidpanel-share" style="display:none;">
+        <div class="info-box">📋 This is the list you share with your students. Each student only needs to know <strong>their own code</strong>. You can copy the whole list and paste it into a message, email, or print it.</div>
+
+        <div class="tools-row">
+          <select id="share-section-filter" onchange="renderShareList()" style="padding:8px 12px;border-radius:8px;font-size:13px;">
+            <option value="all">All Sections</option>
+            <option value="3B">Section 3B</option>
+            <option value="3D">Section 3D</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="copyShareList()">📋 Copy Full List</button>
+          <button class="btn btn-green btn-sm" onclick="downloadCodesExcel()">⬇️ Download Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="printShareList()">🖨️ Print</button>
+        </div>
+
+        <div id="share-list-wrap" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+          <div id="share-list-header" style="background:var(--surface);padding:10px 16px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);display:grid;grid-template-columns:2fr 1fr 1.2fr;gap:12px;">
+            <span>Name</span><span>Section</span><span>Lookup Code</span>
+          </div>
+          <div id="share-list-body" style="max-height:420px;overflow-y:auto;"></div>
+        </div>
+
+        <div style="margin-top:12px;padding:12px 16px;background:var(--surface);border-radius:9px;border:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase;">Plain Text (to copy into chat/email)</div>
+          <textarea id="share-text-area" readonly style="width:100%;min-height:140px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);resize:vertical;outline:none;line-height:1.7;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-primary btn-sm" onclick="copyTextArea()">📋 Copy Text</button>
+            <span id="copy-confirm" style="font-size:12px;color:var(--green);align-self:center;display:none;">✓ Copied!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Bulk Paste -->
+      <div id="cidpanel-paste" style="display:none;">
+        <div class="info-box">
+          📥 <strong>Paste from Excel or any list.</strong> Copy two columns from your spreadsheet — <strong>School ID</strong> and <strong>Code</strong> — then paste below. Each line should be: <code style="font-family:'JetBrains Mono',monospace;background:var(--surface);padding:1px 6px;border-radius:4px;">115081090010&nbsp;&nbsp;&nbsp;38291</code><br>
+          Columns separated by Tab (Excel default) or comma. One student per line.
+        </div>
+        <textarea id="paste-input" placeholder="Paste here…&#10;Example:&#10;115081090010	38291&#10;438517150006	74829&#10;115333100011	61047" style="width:100%;min-height:180px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);resize:vertical;outline:none;line-height:1.7;" oninput="previewPaste()"></textarea>
+
+        <div id="paste-preview" style="display:none;margin-top:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;letter-spacing:.08em;text-transform:uppercase;">Preview</div>
+          <div id="paste-preview-body" style="border:1px solid var(--border);border-radius:9px;overflow:hidden;max-height:220px;overflow-y:auto;"></div>
+        </div>
+
+        <div class="save-row">
+          <button class="btn btn-primary" onclick="applyPaste()">✅ Apply Codes</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('paste-input').value='';document.getElementById('paste-preview').style.display='none';">🗑 Clear</button>
+          <span id="paste-msg-inline" style="font-size:12px;color:var(--text3);"></span>
+        </div>
+        <div id="paste-msg"></div>
+      </div>
+
+    </div>
+
+    <!-- Edit Grades -->
+    <div id="t-grades" class="card" style="display:none;">
+      <div class="card-label">Edit Student Grades</div>
+      <div class="info-box" style="font-size:12px;">
+        Enter raw scores for each component. Averages and final grades are calculated automatically.<br>
+        <strong style="color:var(--green);">Green columns</strong> = Class Standing (60%) &nbsp;|&nbsp; <strong style="color:var(--yellow);">Yellow columns</strong> = Periodic Test/Major Exam (40%)
+      </div>
+
+      <!-- Period selector -->
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" id="gbtn-prelim" onclick="setGradePeriod('prelim')">Prelim</button>
+        <button class="btn btn-ghost btn-sm" id="gbtn-midterm" onclick="setGradePeriod('midterm')">Midterm</button>
+        <button class="btn btn-ghost btn-sm" id="gbtn-finals" onclick="setGradePeriod('finals')">Finals</button>
+      </div>
+
+      <input type="text" id="grade-search" placeholder="Search by name…" oninput="renderGradeTable()" style="margin-bottom:12px;">
+
+      <div class="admin-tbl-wrap" id="grade-tbl-wrap"></div>
+
+      <div class="save-row">
+        <button class="btn btn-primary" onclick="saveGrades()">💾 Save All Changes</button>
+        <button class="btn btn-ghost" onclick="renderGradeTable()">🔄 Refresh</button>
+        <span class="rec-count" id="rec-count"></span>
+      </div>
+      <div id="grade-msg"></div>
+    </div>
+
+    <!-- Change Password -->
+    <div id="t-pass-section" class="card" style="display:none;">
+      <div class="card-label">Change Password</div>
+      <div class="row" style="max-width:380px;">
+        <input type="password" id="new-pass" placeholder="New password…" class="mono">
+        <button class="btn btn-primary" onclick="changePass()">Update</button>
+      </div>
+      <div id="pass-msg"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// GRADE SCHEMA
+// Each student has scores for each period:
+//   Prelim:  quizzes {jm1,jm2,jm3,dt1,dt2} max{20,20,20,15,15}
+//            longtest (raw/50), lecturio {enteral,oral,stomach,obesity,liver,endocrine} max{29,28,182,12,50,170}
+//            major_exam (raw/100)
+//   Midterm & Finals: same structure but components may differ
+//   pg_cs, pg_pt, pg_avg = computed
+// ═══════════════════════════════════════════════
+
+const STORAGE_KEY = 'ncm116_v4';
+const DEFAULT_PASS = 'teacher123';
+
+// Component definitions per period
+const COMPONENTS = {
+  prelim: {
+    cs: {
+      label: 'Class Standing',
+      pct: 60,
+      groups: [
+        { label:'Quizzes', pct:20, items:[
+          {key:'jm1',label:'JM 1',max:20},{key:'jm2',label:'JM 2',max:20},{key:'jm3',label:'JM 3',max:20},
+          {key:'dt1',label:'DT 1',max:15},{key:'dt2',label:'DT 2',max:15}
+        ]},
+        { label:'Long Test', pct:20, items:[
+          {key:'lt',label:'Long Test',max:50}
+        ]},
+        { label:'Lecturio', pct:20, items:[
+          {key:'lec_enteral',label:'Enteral',max:29},{key:'lec_oral',label:'Oral',max:28},
+          {key:'lec_stomach',label:'Stomach',max:182},{key:'lec_obesity',label:'Obesity',max:12},
+          {key:'lec_liver',label:'Liver',max:50},{key:'lec_endocrine',label:'Endocrine',max:170}
+        ]}
+      ]
+    },
+    pt: { label:'Periodic Test', pct:40, items:[{key:'major',label:'Major Exam',max:100}] }
+  },
+  midterm: {
+    cs: {
+      label: 'Class Standing',
+      pct: 60,
+      groups: [
+        { label:'Lecturio', pct:20, items:[
+          {key:'lec_antiinfective',label:'Anti-infective',max:null},{key:'lec_cancer',label:'Cancer',max:null},
+          {key:'lec_fne',label:'F&E',max:null},{key:'lec_cardio',label:'Cardio',max:null},
+          {key:'lec_respi',label:'Respi',max:null},{key:'lec_antiviral',label:'Antiviral',max:null}
+        ]},
+        { label:'Quizzes', pct:20, items:[
+          {key:'q1',label:'Quiz 1',max:null},{key:'q2',label:'Quiz 2',max:null},{key:'q3',label:'Quiz 3',max:null}
+        ]},
+        { label:'Long Quiz', pct:20, items:[
+          {key:'lq',label:'Long Quiz',max:60}
+        ]}
+      ]
+    },
+    pt: { label:'Periodic Test', pct:40, items:[{key:'major',label:'Major Exam',max:100}] }
+  },
+  finals: {
+    cs: {
+      label: 'Class Standing',
+      pct: 60,
+      groups: [
+        { label:'Quizzes', pct:20, items:[
+          {key:'q1',label:'Quiz 1',max:null},{key:'q2',label:'Quiz 2',max:null},{key:'q3',label:'Quiz 3',max:null}
+        ]},
+        { label:'Lecturio', pct:20, items:[
+          {key:'lec1',label:'Lecturio 1',max:null},{key:'lec2',label:'Lecturio 2',max:null},{key:'lec3',label:'Lecturio 3',max:null}
+        ]},
+        { label:'Long Test', pct:20, items:[
+          {key:'lt',label:'Long Test',max:null}
+        ]}
+      ]
+    },
+    pt: { label:'Periodic Test', pct:40, items:[{key:'major',label:'Major Exam',max:100}] }
+  }
+};
+
+const INITIAL = [{"id":"115081090010","name":"LIMEN, Jovean B.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.36,"pg_pt":73.75,"jm1":19,"jm2":23,"jm3":null,"dt1":12,"dt2":null,"lt":27,"lec_enteral":null,"lec_oral":null,"lec_stomach":180,"lec_obesity":12,"lec_liver":50,"lec_endocrine":166,"major":35},"midterm":{"pg_cs":25.28,"pg_pt":null,"lec_antiinfective":null,"lec_cancer":null,"lec_fne":null,"lec_cardio":null,"lec_respi":null,"lec_antiviral":null,"q1":null,"q2":null,"q3":null,"lq":31,"major":null},"finals":{}}},{"id":"438517150006","name":"LINAJA, Fezarre V.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":87.62,"pg_pt":83.75,"jm1":29,"jm2":26,"jm3":null,"dt1":14,"dt2":14,"lt":33,"lec_enteral":null,"lec_oral":null,"lec_stomach":180,"lec_obesity":12,"lec_liver":46,"lec_endocrine":165,"major":54},"midterm":{"pg_cs":28.06,"pg_pt":null,"lq":41,"major":null},"finals":{}}},{"id":"115333100011","name":"LOQUIAS, Khate Anne A.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":89.91,"pg_pt":86.88,"jm1":27,"jm2":25,"jm3":null,"dt1":13,"dt2":14,"lt":39,"lec_enteral":null,"lec_oral":null,"lec_stomach":180,"lec_obesity":12,"lec_liver":47,"lec_endocrine":166,"major":59},"midterm":{"pg_cs":29.17,"pg_pt":null,"lq":45,"major":null},"finals":{}}},{"id":"115220090064","name":"LORENZO, Jim Earl E.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.61,"pg_pt":84.38,"major":55},"midterm":{"pg_cs":28.33,"pg_pt":null,"lq":42},"finals":{}}},{"id":"115220100103","name":"MABAGA, Ayumi Faith Nicole R.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.2,"pg_pt":83.13,"major":53},"midterm":{"pg_cs":26.67,"pg_pt":null,"lq":36},"finals":{}}},{"id":"115223100008","name":"MABUHAY, Roy Earl A.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":89.2,"pg_pt":86.88,"major":59},"midterm":{"pg_cs":29.17,"pg_pt":null,"lq":45},"finals":{}}},{"id":"403962150066","name":"MAGBANUA, Christian Jude R.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":86.15,"pg_pt":80.0,"major":48},"midterm":{"pg_cs":28.89,"pg_pt":null,"lq":44},"finals":{}}},{"id":"115229100053","name":"MAGBANUA, Chrizyle Divine J.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":88.52,"pg_pt":86.25,"major":null},"midterm":{"pg_cs":29.44},"finals":{}}},{"id":"115218100201","name":"MAGBANUA, Kevin John L.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":84.25,"pg_pt":83.75},"midterm":{"pg_cs":27.78},"finals":{}}},{"id":"115213100111","name":"MAGDAYAO, Maidylene G.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":85.52,"pg_pt":84.38},"midterm":{"pg_cs":26.11},"finals":{}}},{"id":"115091100041","name":"MENDOZA, Joyan Francine A.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":82.99,"pg_pt":81.25},"midterm":{"pg_cs":27.22},"finals":{}}},{"id":"178509100045","name":"MENDOZA, Minelly Marie T.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":91.35,"pg_pt":85.63},"midterm":{"pg_cs":28.61},"finals":{}}},{"id":"115179100113","name":"MONDEJAR, Aliza Grace M.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":86.99,"pg_pt":85.0},"midterm":{"pg_cs":28.61},"finals":{}}},{"id":"115179100116","name":"MONDEJAR, Normelyn Kate R.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":84.42,"pg_pt":81.25},"midterm":{"pg_cs":28.33},"finals":{}}},{"id":"115060090013","name":"MONTELIZA, Edmund Jeto Q.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":79.5,"pg_pt":81.25},"midterm":{"pg_cs":27.5},"finals":{}}},{"id":"115408090065","name":"MORENO, Honey Leth C.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":85.25,"pg_pt":76.25},"midterm":{"pg_cs":27.22},"finals":{}}},{"id":"202313030005","name":"MORILLO, Kyla Lizette C.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.25,"pg_pt":91.25},"midterm":{"pg_cs":30.28},"finals":{}}},{"id":"115212100126","name":"MOSCOSO, Angela Shane G.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":84.28,"pg_pt":77.5},"midterm":{"pg_cs":26.94},"finals":{}}},{"id":"115218090220","name":"MOSQUERA, Angel Grace H.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.52,"pg_pt":80.63},"midterm":{"pg_cs":28.06},"finals":{}}},{"id":"115094100072","name":"MUCHILLAS, Renzellanne","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":86.75,"pg_pt":88.13},"midterm":{"pg_cs":28.61},"finals":{}}},{"id":"115218090227","name":"NIETES, Christel Ivy S.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":80.7,"pg_pt":78.13},"midterm":{"pg_cs":24.56},"finals":{}}},{"id":"115300100022","name":"OCCEÑA, Kharyl Patricia A.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":86.23,"pg_pt":80.63},"midterm":{"pg_cs":27.5},"finals":{}}},{"id":"115214100041","name":"OLOY, Fraulein Azeneth M.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":87.52,"pg_pt":84.38},"midterm":{"pg_cs":28.61},"finals":{}}},{"id":"115196100059","name":"OPAO, Adrian Jed Q.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":79.58,"pg_pt":76.88},"midterm":{"pg_cs":26.94},"finals":{}}},{"id":"115218080181","name":"PECHAYCO, Carah May H.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.98,"pg_pt":79.38},"midterm":{"pg_cs":26.39},"finals":{}}},{"id":"438501150782","name":"PECHAYCO, Mary Heart F.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":88.85,"pg_pt":98.13},"midterm":{"pg_cs":30.56},"finals":{}}},{"id":"115408100087","name":"PECOLERA, Kriziah Cate C.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":80.4,"pg_pt":74.75},"midterm":{"pg_cs":29.72},"finals":{}}},{"id":"438501150630","name":"PELINGON, Jade Loureene C.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.0,"pg_pt":77.5},"midterm":{"pg_cs":26.39},"finals":{}}},{"id":"438502150091","name":"PELINGON, Kairo Anrie Y.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":77.31,"pg_pt":77.5},"midterm":{"pg_cs":26.11},"finals":{}}},{"id":"114984100208","name":"PESAYCO, Kaye R.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":85.27,"pg_pt":79.38},"midterm":{"pg_cs":26.94},"finals":{}}},{"id":"438501150506","name":"RIOS, Adrian Jun D.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":82.71,"pg_pt":81.88},"midterm":{"pg_cs":26.67},"finals":{}}},{"id":"115344100102","name":"ROBLES, Quin Nyxzyll N.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.43,"pg_pt":83.13},"midterm":{"pg_cs":28.33},"finals":{}}},{"id":"109635100157","name":"RODOLFO, Meivell G.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":91.55,"pg_pt":96.25},"midterm":{"pg_cs":29.72},"finals":{}}},{"id":"115408100100","name":"ROMA, Franchesca Maria M.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":76.82,"pg_pt":86.88},"midterm":{"pg_cs":28.33},"finals":{}}},{"id":"300599170002","name":"SALMORIN, Aile Ranchette Jelome D.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":84.49,"pg_pt":82.5},"midterm":{"pg_cs":26.39},"finals":{}}},{"id":"115176100027","name":"SALVALEON, Angel Faith C.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.18,"pg_pt":81.25},"midterm":{"pg_cs":27.22},"finals":{}}},{"id":"115218120085","name":"SALVIO, Mary Mikaela P.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":87.92,"pg_pt":83.13},"midterm":{"pg_cs":30.0},"finals":{}}},{"id":"115306120065","name":"SEDIGO, Chris Bryan R.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":80.03,"pg_pt":81.88},"midterm":{"pg_cs":28.89},"finals":{}}},{"id":"115086100033","name":"SIARES, Aira Jade S.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":84.63,"pg_pt":78.75},"midterm":{"pg_cs":28.33},"finals":{}}},{"id":"115087100044","name":"SICAPORE, Shiera Mae G.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":85.31,"pg_pt":83.13},"midterm":{"pg_cs":26.94},"finals":{}}},{"id":"115213070011","name":"SORIANO, Anna Joy B.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":79.05,"pg_pt":81.25},"midterm":{"pg_cs":27.78},"finals":{}}},{"id":"115329100033","name":"SORIANO, Florentino II","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":84.18,"pg_pt":85.0},"midterm":{"pg_cs":28.89},"finals":{}}},{"id":"115092090017","name":"SUMBA, Thea M.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":84.98,"pg_pt":83.13},"midterm":{"pg_cs":28.06},"finals":{}}},{"id":"115306100220","name":"TAGLE, Nefred James J.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":81.62,"pg_pt":80.0},"midterm":{"pg_cs":27.22},"finals":{}}},{"id":"115306090167","name":"TOCOYO, Bea Sheeree M.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":81.5,"pg_pt":80.63},"midterm":{"pg_cs":28.89},"finals":{}}},{"id":"114988100047","name":"TOMPONG, Jessica S.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":87.17,"pg_pt":83.13},"midterm":{"pg_cs":27.22},"finals":{}}},{"id":"115086100036","name":"UNIANA, Andrie Mae M.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":85.09,"pg_pt":82.5},"midterm":{"pg_cs":28.33},"finals":{}}},{"id":"115187100025","name":"VALDEZ, Eden Monique A.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":87.72,"pg_pt":80.0},"midterm":{"pg_cs":27.22},"finals":{}}},{"id":"438503150034","name":"VEDEJA, Sherica O.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.42,"pg_pt":81.25},"midterm":{"pg_cs":26.11},"finals":{}}},{"id":"115313100038","name":"VEGAFRIA, Ma. Magdalyn P.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":83.84,"pg_pt":77.5},"midterm":{"pg_cs":27.78},"finals":{}}},{"id":"115386100046","name":"VILLAFLOR, Aizel Jane E.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":88.77,"pg_pt":84.38},"midterm":{"pg_cs":29.72},"finals":{}}},{"id":"115218120080","name":"VILLAFLOR, Flougelyn A.","section":"3B","custom_id":null,"scores":{"prelim":{"pg_cs":90.35,"pg_pt":88.13},"midterm":{"pg_cs":30.56},"finals":{}}},
+{"id":"115306100122","name":"MACANTAN, Jazzy Herold M.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":83.5,"pg_pt":80.63},"midterm":{},"finals":{}}},{"id":"115310130081","name":"MACUJA, Allenah Grace M.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":85.95,"pg_pt":83.75},"midterm":{},"finals":{}}},{"id":"115212100119","name":"MAGBANUA, Fiona Lee S.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":82.25,"pg_pt":77.5},"midterm":{},"finals":{}}},{"id":"115337140032","name":"MAGSICO, Kizziah Mariel N.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":80.17,"pg_pt":76.88},"midterm":{},"finals":{}}},{"id":"115094090042","name":"MEDES, Kristine Grace L.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":82.11,"pg_pt":80.63},"midterm":{},"finals":{}}},{"id":"115202090015","name":"MIJARES, Mekael S.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":75.31,"pg_pt":78.75},"midterm":{},"finals":{}}},{"id":"115296100032","name":"MILLAMENA, Avryll Frances Guela G.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":79.26,"pg_pt":75.63},"midterm":{},"finals":{}}},{"id":"115364100048","name":"MINGO, Lyvron James J.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":80.89,"pg_pt":84.38},"midterm":{},"finals":{}}},{"id":"115258100034","name":"MISSION, Diorize April A.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":82.07,"pg_pt":75.63},"midterm":{},"finals":{}}},{"id":"115212100127","name":"MOSCOSO, Keith Gabriel A.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":83.93,"pg_pt":75.63},"midterm":{},"finals":{}}},{"id":"115218090224","name":"NEPOMUCENO, Mary Angelene O.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":79.94,"pg_pt":72.5},"midterm":{},"finals":{}}},{"id":"114939100062","name":"NIANGAR, Fc Greff P.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":79.26,"pg_pt":75.63},"midterm":{},"finals":{}}},{"id":"114984100186","name":"ORENDAIN, Irene Dion L.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":82.56,"pg_pt":81.88},"midterm":{},"finals":{}}},{"id":"115306100168","name":"ORTIGAS, Raynier Josh A.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":81.05,"pg_pt":81.88},"midterm":{},"finals":{}}},{"id":"115218100259","name":"PANDAGANI, Nicka Hanna Gwyne O.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":84.99,"pg_pt":74.5},"midterm":{},"finals":{}}},{"id":"115066100015","name":"PARNONCILLON, Ericka R.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":84.43,"pg_pt":80.63},"midterm":{},"finals":{}}},{"id":"438501150787","name":"PASAQUIAN, Christine D.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":82.25,"pg_pt":82.5},"midterm":{},"finals":{}}},{"id":"115069100098","name":"PASAQUIAN, Daisy Joy A.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":84.94,"pg_pt":80.0},"midterm":{},"finals":{}}},{"id":"115301100068","name":"PAULE, Arvie Claire G.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":87.44,"pg_pt":87.5},"midterm":{},"finals":{}}},{"id":"115087100039","name":"PINEDA, Yvonne Marie M.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":81.09,"pg_pt":75.0},"midterm":{},"finals":{}}},{"id":"438503150032","name":"PINGOY, Shanley Deanne T.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":83.09,"pg_pt":77.5},"midterm":{},"finals":{}}},{"id":"115218100274","name":"QUEMAN, Leona Lea P.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":83.81,"pg_pt":74.5},"midterm":{},"finals":{}}},{"id":"115094100079","name":"RASCO, Shinead Angeli M.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":80.0,"pg_pt":77.5},"midterm":{},"finals":{}}},{"id":"115175100024","name":"RICAFRENTE, Merriel G.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":84.17,"pg_pt":78.75},"midterm":{},"finals":{}}},{"id":"115359120036","name":"RICALCAR, Marynette Jioselle A.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":80.02,"pg_pt":79.38},"midterm":{},"finals":{}}},{"id":"115405090040","name":"RICO, Krishia B.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":81.66,"pg_pt":74.0},"midterm":{},"finals":{}}},{"id":"115216100031","name":"SAMSONA, Elen Joy A.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":80.29,"pg_pt":81.25},"midterm":{},"finals":{}}},{"id":"115307080037","name":"SANDOY, Kaye D.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":85.2,"pg_pt":80.0},"midterm":{},"finals":{}}},{"id":"115082090023","name":"SANGAT, Rona May M.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":82.68,"pg_pt":73.0},"midterm":{},"finals":{}}},{"id":"116740120222","name":"SANSAET, Elysa Gwyn T.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":82.9,"pg_pt":81.88},"midterm":{},"finals":{}}},{"id":"115230100085","name":"SANTILLAN, Leobert P.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":85.06,"pg_pt":78.75},"midterm":{},"finals":{}}},{"id":"115069130001","name":"SANTILLAN, Tobin Reiber P.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":78.53,"pg_pt":76.88},"midterm":{},"finals":{}}},{"id":"115086100023","name":"SASOTA, Jorelyn S.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":85.36,"pg_pt":74.25},"midterm":{},"finals":{}}},{"id":"115218100314","name":"SILVA, Julliene Dianne A.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":79.22,"pg_pt":75.63},"midterm":{},"finals":{}}},{"id":"115299100019","name":"TABAQUE, Arjan Kent U.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":89.72,"pg_pt":84.38},"midterm":{},"finals":{}}},{"id":"115197100039","name":"TABAQUE, Dhyionna Thrychzia A.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":88.31,"pg_pt":80.0},"midterm":{},"finals":{}}},{"id":"115364140013","name":"TAJANLANGIT, Hannah Mae V.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":85.52,"pg_pt":81.25},"midterm":{},"finals":{}}},{"id":"116645100115","name":"TANALGO, Julianna Marie V.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":84.1,"pg_pt":79.38},"midterm":{},"finals":{}}},{"id":"115015100065","name":"TAPIC, Terence Joi J.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":81.41,"pg_pt":81.25},"midterm":{},"finals":{}}},{"id":"115187100023","name":"TATON, Janecha Kylin C.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":87.6,"pg_pt":81.25},"midterm":{},"finals":{}}},{"id":"115212090170","name":"TINGSON, Alexie Paz T.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":80.93,"pg_pt":78.13},"midterm":{},"finals":{}}},{"id":"115306080200","name":"TUBIANOSA, Novelyn Mae S.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":80.44,"pg_pt":80.0},"midterm":{},"finals":{}}},{"id":"116814100048","name":"UMADHAY, Chrystel Rose D.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":85.07,"pg_pt":86.88},"midterm":{},"finals":{}}},{"id":"115232100039","name":"VALENZUELA, Kenjie E.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":83.08,"pg_pt":82.5},"midterm":{},"finals":{}}},{"id":"115194100033","name":"VICENTE, Jaspine A.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":82.83,"pg_pt":78.13},"midterm":{},"finals":{}}},{"id":"115218100344","name":"VICTORIANO, Krizzanell Marie M.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":83.8,"pg_pt":77.5},"midterm":{},"finals":{}}},{"id":"115213100184","name":"VILLAFLOR, Paul C.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":83.08,"pg_pt":80.0},"midterm":{},"finals":{}}},{"id":"115213100196","name":"VILLAVERT, Abbeygail Mikko","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":84.54,"pg_pt":81.25},"midterm":{},"finals":{}}},{"id":"403961150060","name":"VISTA, Kristine Heart M.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":87.77,"pg_pt":76.88},"midterm":{},"finals":{}}},{"id":"115218100354","name":"VIYO, Camille Alzea E.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":85.49,"pg_pt":78.75},"midterm":{},"finals":{}}},{"id":"115309120031","name":"ZAMORA, Gwynette L.","section":"3D","custom_id":null,"scores":{"prelim":{"pg_cs":84.19,"pg_pt":81.88},"midterm":{},"finals":{}}}];
+
+// ── State ───────────────────────────────────────
+function loadState(){
+  try{ const s=localStorage.getItem(STORAGE_KEY); if(s) return JSON.parse(s); }catch(e){}
+  return {password:DEFAULT_PASS, students:JSON.parse(JSON.stringify(INITIAL))};
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(STATE)); }
+let STATE=loadState();
+let tLoggedIn=false;
+let currentPeriod='prelim';
+
+// ── Helpers ──────────────────────────────────────
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function n(v){return(v!==null&&v!==undefined&&v!==''&&!isNaN(v))?Number(v):null;}
+function fmt(v,d=2){return v===null||v===undefined||isNaN(v)?'—':Number(v).toFixed(d);}
+function pct(raw,max){if(raw===null||max===null||max===0)return null;return(raw/max)*100;}
+
+// Get CS score for a period (uses stored pg_cs/mg_cs/fg_cs if available, or compute from items)
+function getCS(sc, period){
+  const key = period==='prelim'?'pg_cs':period==='midterm'?'mg_cs':'fg_cs';
+  if(sc[key]!==undefined&&sc[key]!==null) return sc[key];
+  return null;
+}
+function getPT(sc, period){
+  const key = period==='prelim'?'pg_pt':period==='midterm'?'mg_pt':'fg_pt';
+  if(sc[key]!==undefined&&sc[key]!==null) return sc[key];
+  // compute from major exam
+  const majorRaw = n(sc.major);
+  if(majorRaw!==null) return (majorRaw/100)*100; // already percentage
+  return null;
+}
+function getAvg(sc, period){
+  const cs=getCS(sc,period), pt=getPT(sc,period);
+  if(cs!==null&&pt!==null) return (cs*0.6)+(pt*0.4);
+  if(cs!==null) return cs*0.6;
+  if(pt!==null) return pt*0.4;
+  return null;
+}
+function getFinalRating(s){
+  const p=getAvg(s.scores.prelim,'prelim');
+  const m=getAvg(s.scores.midterm,'midterm');
+  const f=getAvg(s.scores.finals,'finals');
+  const parts=[p,m,f].filter(x=>x!==null);
+  if(!parts.length) return null;
+  return parts.reduce((a,b)=>a+b,0)/parts.length;
+}
+
+// ── Tab switching ────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===(tab==='student'?0:1)));
+  document.getElementById('panel-student').classList.toggle('active',tab==='student');
+  document.getElementById('panel-teacher').classList.toggle('active',tab==='teacher');
+}
+
+// ════════════════════════════════════════════════
+// STUDENT LOOKUP
+// ════════════════════════════════════════════════
+function stuLookup(){
+  const val=document.getElementById('stu-id').value.trim();
+  document.getElementById('stu-err').innerHTML='';
+  document.getElementById('stu-result').innerHTML='';
+  if(!val){document.getElementById('stu-err').innerHTML='<div class="msg msg-err">Please enter your Lookup Code.</div>';return;}
+  const s=STATE.students.find(x=>(x.custom_id&&x.custom_id===val)||(!x.custom_id&&x.id===val));
+  if(!s){document.getElementById('stu-err').innerHTML=`<div class="msg msg-err">Code not found. Please check the code given to you by your teacher.</div>`;return;}
+  renderStudentResult(s);
+}
+
+let activePeriodTab='prelim';
+
+function renderStudentResult(s){
+  const periods=['prelim','midterm','finals'];
+  const pLabels={prelim:'Prelim',midterm:'Midterm',finals:'Finals'};
+
+  // determine which periods have data
+  function hasData(period){
+    const sc=s.scores[period]||{};
+    const cs=getCS(sc,period), pt=getPT(sc,period);
+    return cs!==null||pt!==null;
+  }
+
+  const finalRating=getFinalRating(s);
+  const allPeriodsComplete = ['prelim','midterm','finals'].every(p=> getAvg(s.scores[p]||{},p)!==null);
+  const action = (!allPeriodsComplete) ? 'Pending' : finalRating>=80 ? 'Passed' : 'Failed';
+
+  const allPeriods=[...periods,'final'];
+  const pLabelsAll={prelim:'Prelim',midterm:'Midterm',finals:'Finals',final:'Final Rating'};
+
+  let html=`<div class="result-wrap">
+    <div class="result-head">
+      <div class="result-name">${esc(s.name)}</div>
+      <div class="result-meta">
+        <span>Section: BSN ${esc(s.section)}</span>
+        <span>NCM 116 · 2nd Sem 2025-2026</span>
+      </div>
+    </div>
+    <div class="result-body">
+      <div class="period-nav">
+        ${periods.map(p=>`<button class="period-nav-btn ${hasData(p)?'has-data':'pending'} ${p===activePeriodTab?'active':''}" onclick="switchPeriodTab('${p}')">${pLabels[p]}</button>`).join('')}
+        <button class="period-nav-btn final-tab ${activePeriodTab==='final'?'active':''}" onclick="switchPeriodTab('final')">🏁 Final Rating</button>
+      </div>
+      ${periods.map(p=>renderPeriodPanel(s,p)).join('')}
+      ${renderFinalPanel(s)}
+    </div>
+  </div>`;
+
+  document.getElementById('stu-result').innerHTML=html;
+  switchPeriodTab(activePeriodTab);
+}
+
+function renderFinalPanel(s){
+  const periods=['prelim','midterm','finals'];
+  const pLabels={prelim:'Preliminary',midterm:'Midterm',finals:'Finals'};
+  const pColors={prelim:'--accent',midterm:'--purple',finals:'--teal'};
+  const pBg={prelim:'rgba(37,99,235,.08)',midterm:'rgba(147,51,234,.08)',finals:'rgba(13,148,136,.08)'};
+  const pBorder={prelim:'rgba(37,99,235,.2)',midterm:'rgba(147,51,234,.2)',finals:'rgba(13,148,136,.2)'};
+
+  const avgs=periods.map(p=>getAvg(s.scores[p]||{},p));
+  const finalRating=getFinalRating(s);
+  const allComplete = avgs.every(a=>a!==null);
+  const action = !allComplete ? null : finalRating>=80 ? 'Passed' : 'Failed';
+  const bc = action==='Passed'?'final-passed':action==='Failed'?'final-failed':'';
+
+  const periodCards = periods.map((p,i)=>{
+    const avg = avgs[i];
+    const hasAny = getCS(s.scores[p]||{},p)!==null || getPT(s.scores[p]||{},p)!==null;
+    return `<div style="background:${hasAny?pBg[p]:'var(--surface)'};border:1.5px solid ${hasAny?pBorder[p]:'var(--border)'};border-radius:12px;padding:18px 20px;flex:1;min-width:140px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">${pLabels[p]}</div>
+      ${hasAny
+        ? `<div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:${i===0?'var(--accent)':i===1?'var(--purple)':'var(--teal)'};">${fmt(avg)}</div>
+           <div style="font-size:11px;color:var(--text3);margin-top:3px;">(CS×60%) + (PT×40%)</div>`
+        : `<div style="font-size:22px;font-weight:700;color:var(--text3);">—</div>
+           <div style="font-size:11px;color:var(--text3);margin-top:3px;">Not yet available</div>`
+      }
+    </div>`;
+  }).join('');
+
+  const completedCount = avgs.filter(a=>a!==null).length;
+
+  return `<div class="period-panel" data-period="final">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
+      ${periodCards}
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:14px 18px;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">How Final Rating is Computed</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+        Final Rating = ( ${avgs.map((a,i)=>`<span style="font-family:'JetBrains Mono',monospace;font-weight:600;">${a!==null?fmt(a):'pending'}</span>`).join(' + ')} ) ÷ ${completedCount>0?completedCount:'—'}
+        ${finalRating!==null?`= <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);">${fmt(finalRating)}</span>`:''}
+      </div>
+    </div>
+
+    <div class="final-banner ${bc}" style="${!action?'background:var(--surface);border:1.5px solid var(--border);':''}">
+      <div>
+        <div class="final-label">Final Rating</div>
+        <div class="final-val" style="${!action?'color:var(--text3);font-size:24px;':''}">${finalRating!==null?fmt(finalRating):'—'}</div>
+        ${!action?`<div style="font-size:12px;color:var(--text3);margin-top:4px;">⏳ Pending — waiting for Midterm &amp; Finals to be encoded</div>`:''}
+      </div>
+      ${action?`<div class="final-pill">${action==='Passed'?'✓ Passed':'✗ Failed'}</div>`:
+        `<div style="font-size:12px;font-weight:700;padding:8px 16px;border-radius:24px;background:rgba(217,119,6,.1);color:var(--yellow);">⏳ Pending</div>`}
+    </div>
+  </div>`;
+}
+
+function switchPeriodTab(period){
+  activePeriodTab=period;
+  document.querySelectorAll('.period-nav-btn').forEach(b=>{
+    const txt=b.textContent.trim();
+    const match =
+      (period==='prelim'&&txt==='Prelim')||
+      (period==='midterm'&&txt==='Midterm')||
+      (period==='finals'&&txt==='Finals')||
+      (period==='final'&&txt.includes('Final Rating'));
+    b.classList.toggle('active', match);
+  });
+  document.querySelectorAll('.period-panel').forEach(p=>{
+    p.classList.toggle('active', p.dataset.period===period);
+  });
+}
+
+function renderPeriodPanel(s, period){
+  const sc = s.scores[period]||{};
+  const cs = getCS(sc,period);
+  const pt = getPT(sc,period);
+  const avg = getAvg(sc,period);
+  const comp = COMPONENTS[period];
+  const pLabels={prelim:'Preliminary',midterm:'Midterm',finals:'Finals'};
+
+  if(cs===null&&pt===null){
+    return `<div class="period-panel" data-period="${period}">
+      <div class="pending-state">
+        <div class="big-icon">📋</div>
+        <p>${pLabels[period]} grades are not yet available.</p>
+        <p style="margin-top:4px;">Check back after your teacher encodes the scores.</p>
+      </div>
+    </div>`;
+  }
+
+  // Class Standing breakdown
+  let csHtml='';
+  if(comp.cs.groups){
+    comp.cs.groups.forEach(g=>{
+      const hasAny = g.items.some(it=>n(sc[it.key])!==null);
+      const scoreItems = g.items.map(it=>{
+        const val=n(sc[it.key]);
+        return `<div class="score-item">
+          <div class="score-item-label">${esc(it.label)}</div>
+          <div class="score-item-val">${val!==null?val:'—'}<span class="score-item-max">${it.max?'/'+it.max:''}</span></div>
+        </div>`;
+      }).join('');
+      csHtml+=`<div style="margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;">${esc(g.label)} <span style="opacity:.6;">${g.pct}%</span></div>
+        <div class="bk-items">${scoreItems}</div>
+      </div>`;
+    });
+  }
+
+  // PT breakdown
+  const majorRaw = n(sc.major);
+  const ptHtml = comp.pt.items.map(it=>{
+    const val=n(sc[it.key]);
+    return `<div class="score-item" style="max-width:200px;">
+      <div class="score-item-label">${esc(it.label)}</div>
+      <div class="score-item-val" style="font-size:22px;">${val!==null?val:'—'}<span class="score-item-max">${it.max?'/'+it.max:''}</span></div>
+    </div>`;
+  }).join('');
+
+  return `<div class="period-panel" data-period="${period}">
+    <!-- Class Standing -->
+    <div class="breakdown-card bk-cs">
+      <div class="bk-header">
+        <span class="bk-title">Class Standing</span>
+        <span class="bk-pct">60%</span>
+      </div>
+      <div class="bk-body">
+        ${csHtml}
+        <div class="bk-subtotal">
+          <span class="bk-subtotal-label">Class Standing Score</span>
+          <span class="bk-subtotal-val">${fmt(cs)}</span>
+        </div>
+      </div>
+    </div>
+    <!-- Periodic Test -->
+    <div class="breakdown-card bk-pt">
+      <div class="bk-header">
+        <span class="bk-title">Periodic Test / Major Exam</span>
+        <span class="bk-pct">40%</span>
+      </div>
+      <div class="bk-body">
+        <div class="bk-items">${ptHtml}</div>
+        <div class="bk-subtotal">
+          <span class="bk-subtotal-label">Periodic Test Score</span>
+          <span class="bk-subtotal-val">${fmt(pt)}</span>
+        </div>
+      </div>
+    </div>
+    <!-- Period result -->
+    <div class="period-result">
+      <div>
+        <div class="period-result-label">${pLabels[period]} Grade</div>
+        <div class="period-result-val">${fmt(avg)}</div>
+      </div>
+      <div class="period-formula">= (CS × 60%) + (PT × 40%)<br>= ${fmt(cs)} × 0.6 + ${fmt(pt)} × 0.4</div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════
+// TEACHER AUTH
+// ════════════════════════════════════════════════
+function tLogin(){
+  const p=document.getElementById('t-pass').value;
+  if(p===STATE.password){
+    tLoggedIn=true;
+    document.getElementById('t-login').style.display='none';
+    document.getElementById('t-content').style.display='block';
+    tShow('upload');
+    renderIdList(); renderCidTable();
+    setGradePeriod('prelim');
+  } else {
+    document.getElementById('t-login-err').innerHTML='<div class="msg msg-err">Incorrect password.</div>';
+  }
+}
+function tLogout(){
+  tLoggedIn=false;
+  document.getElementById('t-login').style.display='block';
+  document.getElementById('t-content').style.display='none';
+  document.getElementById('t-pass').value='';
+  document.getElementById('t-login-err').innerHTML='';
+}
+function tShow(sec){
+  ['upload','ids','customids','grades','pass-section'].forEach(s=>{
+    const el=document.getElementById('t-'+s);
+    if(el) el.style.display=s.replace('-section','')===(sec==='pass'?'pass-section':sec)||s===sec+'-section'?'block':'none';
+  });
+  const gEl=document.getElementById('t-grades');
+  if(gEl) gEl.style.display=sec==='grades'?'block':'none';
+  const pEl=document.getElementById('t-pass-section');
+  if(pEl) pEl.style.display=sec==='pass'?'block':'none';
+  const uEl=document.getElementById('t-upload');
+  if(uEl) uEl.style.display=sec==='upload'?'block':'none';
+  const iEl=document.getElementById('t-ids');
+  if(iEl) iEl.style.display=sec==='ids'?'block':'none';
+  const cEl=document.getElementById('t-customids');
+  if(cEl) cEl.style.display=sec==='customids'?'block':'none';
+}
+function changePass(){
+  const np=document.getElementById('new-pass').value.trim();
+  if(!np){document.getElementById('pass-msg').innerHTML='<div class="msg msg-err">Cannot be empty.</div>';return;}
+  STATE.password=np; saveState();
+  document.getElementById('pass-msg').innerHTML='<div class="msg msg-ok">✓ Password updated.</div>';
+  setTimeout(()=>document.getElementById('pass-msg').innerHTML='',3000);
+}
+
+// ════════════════════════════════════════════════
+// STUDENT ID LIST
+// ════════════════════════════════════════════════
+function renderIdList(){
+  const q=(document.getElementById('ids-search').value||'').toLowerCase();
+  const f=STATE.students.filter(s=>s.name.toLowerCase().includes(q)||s.id.includes(q));
+  document.getElementById('ids-body').innerHTML=f.map((s,i)=>`
+    <tr>
+      <td style="color:var(--text3);font-size:11px;">${i+1}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);">${esc(s.id)}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:${s.custom_id?'var(--green)':'var(--text3)'};">${s.custom_id?esc(s.custom_id):'—'}</span></td>
+      <td style="font-weight:600;">${esc(s.name)}</td>
+      <td><span class="sec-${s.section==='3B'?'3b':'3d'}">${esc(s.section)}</span></td>
+    </tr>`).join('');
+}
+
+// ════════════════════════════════════════════════
+// CUSTOM IDs
+// ════════════════════════════════════════════════
+function renderCidTable(){
+  const q=(document.getElementById('cid-search').value||'').toLowerCase();
+  const f=STATE.students.filter(s=>s.name.toLowerCase().includes(q));
+  document.getElementById('cid-body').innerHTML=f.map((s,i)=>`
+    <tr data-id="${esc(s.id)}">
+      <td style="color:var(--text3);font-size:11px;">${i+1}</td>
+      <td style="font-weight:600;min-width:150px;">${esc(s.name)}</td>
+      <td><span class="sec-${s.section==='3B'?'3b':'3d'}">${esc(s.section)}</span></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);">${esc(s.id)}</td>
+      <td><input type="text" value="${esc(s.custom_id||'')}" placeholder="e.g. 38291…" class="${s.custom_id?'id-set':''}" oninput="this.classList.toggle('id-set',this.value.trim()!=='')" data-field="cid"></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="randOne('${esc(s.id)}')" title="Random">🎲</button></td>
+    </tr>`).join('');
+}
+function genAllRandom(){
+  STATE.students.forEach(s=>{s.custom_id=randCode();});
+  renderCidTable(); renderIdList();
+}
+function randOne(sid){
+  const row=document.querySelector(`#cid-body tr[data-id="${sid}"]`);
+  if(!row) return;
+  const inp=row.querySelector('[data-field="cid"]');
+  const code=randCode();
+  inp.value=code; inp.classList.add('id-set');
+  const s=STATE.students.find(x=>x.id===sid);
+  if(s) s.custom_id=code;
+}
+function randCode(){return Math.floor(10000+Math.random()*90000).toString();}
+function saveCids(){
+  document.querySelectorAll('#cid-body tr').forEach(row=>{
+    const s=STATE.students.find(x=>x.id===row.dataset.id);
+    if(!s) return;
+    const inp=row.querySelector('[data-field="cid"]');
+    if(inp) s.custom_id=inp.value.trim()||null;
+  });
+  const codes=STATE.students.map(s=>s.custom_id).filter(Boolean);
+  if(new Set(codes).size<codes.length){
+    document.getElementById('cid-msg').innerHTML='<div class="msg msg-err">⚠️ Duplicate codes found! Each student needs a unique code.</div>';
+    return;
+  }
+  saveState(); renderIdList(); renderCidTable();
+  document.getElementById('cid-msg').innerHTML='<div class="msg msg-ok">✓ Lookup Codes saved!</div>';
+  setTimeout(()=>document.getElementById('cid-msg').innerHTML='',4000);
+}
+
+// ── CID Sub-tabs ──────────────────────────────
+function showCidTab(tab){
+  ['edit','share','paste'].forEach(t=>{
+    document.getElementById('cidpanel-'+t).style.display=t===tab?'block':'none';
+    const btn=document.getElementById('cidtab-'+t);
+    if(btn) btn.classList.toggle('active',t===tab);
+  });
+  if(tab==='share') renderShareList();
+}
+
+// ── Share List ────────────────────────────────
+function renderShareList(){
+  const sec=(document.getElementById('share-section-filter').value||'all');
+  const students=STATE.students.filter(s=>sec==='all'||s.section===sec);
+
+  const rows=students.map(s=>`
+    <div class="share-row">
+      <div style="font-weight:500;">${esc(s.name)}</div>
+      <div><span class="sec-${s.section==='3B'?'3b':'3d'}">${esc(s.section)}</span></div>
+      <div>${s.custom_id
+        ? `<span class="share-code">${esc(s.custom_id)}</span>`
+        : `<span class="share-no-code">— not set</span>`
+      }</div>
+    </div>`).join('');
+
+  document.getElementById('share-list-body').innerHTML=rows||'<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">No students found.</div>';
+
+  // Build plain text for textarea
+  const lines=students.map(s=>`${s.name.padEnd(36)}${s.custom_id||'(not set)'}`);
+  const header=`${'NAME'.padEnd(36)}LOOKUP CODE\n${'─'.repeat(50)}`;
+  document.getElementById('share-text-area').value=header+'\n'+lines.join('\n');
+}
+
+function copyShareList(){
+  const ta=document.getElementById('share-text-area');
+  ta.select();
+  document.execCommand('copy');
+  showCopyConfirm();
+}
+
+function copyTextArea(){
+  const ta=document.getElementById('share-text-area');
+  ta.select();
+  document.execCommand('copy');
+  showCopyConfirm();
+}
+
+function showCopyConfirm(){
+  const el=document.getElementById('copy-confirm');
+  if(!el) return;
+  el.style.display='inline';
+  setTimeout(()=>el.style.display='none',2500);
+}
+
+function printShareList(){
+  const sec=(document.getElementById('share-section-filter').value||'all');
+  const students=STATE.students.filter(s=>sec==='all'||s.section===sec);
+  const rows=students.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name}</td><td>BSN ${s.section}</td><td style="font-family:monospace;font-weight:700;color:#1d4ed8;">${s.custom_id||'—'}</td></tr>`).join('');
+  const win=window.open('','_blank');
+  win.document.write(`<html><head><title>Student Lookup Codes — NCM 116</title>
+  <style>body{font-family:sans-serif;padding:24px;}h2{margin-bottom:4px;}p{color:#666;font-size:13px;margin-bottom:18px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{background:#1d4ed8;color:#fff;padding:8px 12px;text-align:left;}
+  td{padding:7px 12px;border-bottom:1px solid #e5e7eb;}tr:nth-child(even)td{background:#f8faff;}
+  @media print{body{padding:0;}}</style></head>
+  <body><h2>NCM 116 — Student Lookup Codes</h2>
+  <p>St. Anthony's College · 2nd Semester A.Y. 2025–2026 · Instructor: Deannah Lou F. Tampus, MAN, RN</p>
+  <table><thead><tr><th>#</th><th>Name</th><th>Section</th><th>Lookup Code</th></tr></thead>
+  <tbody>${rows}</tbody></table></body></html>`);
+  win.document.close();
+  win.print();
+}
+
+function downloadCodesExcel(){
+  const sec=(document.getElementById('share-section-filter').value||'all');
+  const students=STATE.students.filter(s=>sec==='all'||s.section===sec);
+
+  // Build worksheet data — separate columns
+  const wsData=[
+    ['#', 'LAST NAME', 'FIRST NAME', 'SECTION', 'SCHOOL ID', 'LOOKUP CODE']
+  ];
+
+  students.forEach((s,i)=>{
+    // Split name — format is "LASTNAME, Firstname"
+    const parts = s.name.split(',');
+    const lastName = parts[0]?parts[0].trim():'';
+    const firstName = parts[1]?parts[1].trim():'';
+    wsData.push([
+      i+1,
+      lastName,
+      firstName,
+      'BSN '+s.section,
+      s.id,
+      s.custom_id||''
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Set column widths
+  ws['!cols']=[
+    {wch:4},   // #
+    {wch:22},  // Last Name
+    {wch:24},  // First Name
+    {wch:10},  // Section
+    {wch:16},  // School ID
+    {wch:14},  // Lookup Code
+  ];
+
+  // Style header row bold (basic)
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for(let C=range.s.c; C<=range.e.c; C++){
+    const cell = ws[XLSX.utils.encode_cell({r:0,c:C})];
+    if(cell) cell.s={font:{bold:true}};
+  }
+
+  const wb = XLSX.utils.book_new();
+  const sheetLabel = sec==='all'?'All Students':`Section ${sec}`;
+  XLSX.utils.book_append_sheet(wb, ws, sheetLabel);
+
+  const filename = sec==='all'
+    ? 'NCM116_Lookup_Codes_All.xlsx'
+    : `NCM116_Lookup_Codes_${sec}.xlsx`;
+
+  XLSX.writeFile(wb, filename);
+}
+let pasteData=[];
+
+function previewPaste(){
+  const raw=document.getElementById('paste-input').value.trim();
+  if(!raw){ document.getElementById('paste-preview').style.display='none'; return; }
+
+  pasteData=[];
+  const lines=raw.split('\n').filter(l=>l.trim());
+  const preview=[];
+
+  lines.forEach((line,i)=>{
+    // Split by tab or comma
+    const parts=line.trim().split(/\t|,/).map(p=>p.trim());
+    if(parts.length<2){ preview.push({err:true,line:line,msg:`Line ${i+1}: needs 2 columns (ID and Code)`}); return; }
+    const schoolId=parts[0].replace(/\.0+$/,'');
+    const code=parts[1];
+    if(!schoolId||!code){ preview.push({err:true,line:line,msg:`Line ${i+1}: empty ID or code`}); return; }
+    const student=STATE.students.find(s=>s.id===schoolId);
+    if(!student){ preview.push({err:true,line:line,msg:`Line ${i+1}: ID ${schoolId} not found`}); return; }
+    pasteData.push({schoolId,code,name:student.name,section:student.section});
+    preview.push({err:false,schoolId,code,name:student.name,section:student.section});
+  });
+
+  const okCount=preview.filter(p=>!p.err).length;
+  const errCount=preview.filter(p=>p.err).length;
+  document.getElementById('paste-msg-inline').textContent=`${okCount} matched · ${errCount} errors`;
+
+  const rows=preview.map(p=>p.err
+    ? `<div class="paste-row-err">⚠ ${esc(p.msg)} — <span style="opacity:.6;">${esc(p.line)}</span></div>`
+    : `<div class="paste-row-ok">
+        <div style="font-weight:500;">${esc(p.name)}</div>
+        <div><span class="sec-${p.section==='3B'?'3b':'3d'}">${esc(p.section)}</span></div>
+        <div><span class="share-code">${esc(p.code)}</span></div>
+       </div>`
+  ).join('');
+
+  document.getElementById('paste-preview-body').innerHTML=rows;
+  document.getElementById('paste-preview').style.display='block';
+}
+
+function applyPaste(){
+  if(!pasteData.length){
+    document.getElementById('paste-msg').innerHTML='<div class="msg msg-err">Nothing to apply. Paste some data first.</div>';
+    return;
+  }
+  // Check for duplicate codes within paste data
+  const newCodes=pasteData.map(d=>d.code);
+  if(new Set(newCodes).size<newCodes.length){
+    document.getElementById('paste-msg').innerHTML='<div class="msg msg-err">⚠️ Duplicate codes in your paste. Each student needs a unique code.</div>';
+    return;
+  }
+  pasteData.forEach(d=>{
+    const s=STATE.students.find(x=>x.id===d.schoolId);
+    if(s) s.custom_id=d.code;
+  });
+  saveState();
+  renderIdList();
+  renderCidTable();
+  document.getElementById('paste-msg').innerHTML=`<div class="msg msg-ok">✓ ${pasteData.length} Lookup Code${pasteData.length!==1?'s':''} applied and saved!</div>`;
+  document.getElementById('paste-input').value='';
+  document.getElementById('paste-preview').style.display='none';
+  pasteData=[];
+  setTimeout(()=>document.getElementById('paste-msg').innerHTML='',4000);
+}
+// ════════════════════════════════════════════════
+function setGradePeriod(p){
+  currentPeriod=p;
+  ['prelim','midterm','finals'].forEach(x=>{
+    const b=document.getElementById('gbtn-'+x);
+    if(b) b.className=`btn btn-sm ${x===p?'btn-primary':'btn-ghost'}`;
+  });
+  renderGradeTable();
+}
+
+function renderGradeTable(){
+  const q=(document.getElementById('grade-search').value||'').toLowerCase();
+  const f=STATE.students.filter(s=>s.name.toLowerCase().includes(q)||s.id.includes(q));
+  document.getElementById('rec-count').textContent=`${f.length} / ${STATE.students.length} students`;
+
+  const p=currentPeriod;
+  const comp=COMPONENTS[p];
+  const csKey=p==='prelim'?'pg_cs':p==='midterm'?'mg_cs':'fg_cs';
+  const ptKey=p==='prelim'?'pg_pt':p==='midterm'?'mg_pt':'fg_pt';
+
+  // Build all item keys for this period
+  let allItems=[];
+  comp.cs.groups.forEach(g=>g.items.forEach(it=>allItems.push({...it,group:g.label,side:'cs'})));
+  comp.pt.items.forEach(it=>allItems.push({...it,group:'Major Exam',side:'pt'}));
+
+  // Build header
+  let ths=`<th>Name</th><th>Sec</th>`;
+  comp.cs.groups.forEach(g=>{
+    g.items.forEach(it=>{ ths+=`<th class="group-cs" title="${it.label}">${it.label}${it.max?' /'+it.max:''}</th>`; });
+  });
+  ths+=`<th class="group-calc">CS Score</th>`;
+  comp.pt.items.forEach(it=>{ ths+=`<th class="group-pt">${it.label}${it.max?' /'+it.max:''}</th>`; });
+  ths+=`<th class="group-calc">PT Score</th><th class="group-calc">${p.charAt(0).toUpperCase()+p.slice(1)} Avg</th><th>Status</th>`;
+
+  const rows=f.map(s=>{
+    const sc=s.scores[p]||{};
+    const cs=getCS(sc,p), pt=getPT(sc,p), avg=getAvg(sc,p);
+
+    let tds=`<td class="name-cell">${esc(s.name)}</td><td><span class="sec-${s.section==='3B'?'3b':'3d'}">${esc(s.section)}</span></td>`;
+    // CS item inputs
+    comp.cs.groups.forEach(g=>g.items.forEach(it=>{
+      tds+=`<td><input type="number" step="0.01" min="0" value="${sc[it.key]??''}" placeholder="—" onchange="updateScore('${esc(s.id)}','${p}','${it.key}',this.value)"></td>`;
+    }));
+    tds+=`<td class="calc-cell">${fmt(cs)}</td>`;
+    comp.pt.items.forEach(it=>{
+      tds+=`<td><input type="number" step="0.01" min="0" value="${sc[it.key]??''}" placeholder="—" onchange="updateScore('${esc(s.id)}','${p}','${it.key}',this.value)"></td>`;
+    });
+    tds+=`<td class="calc-cell">${fmt(pt)}</td><td class="calc-cell">${fmt(avg)}</td>`;
+    tds+=`<td><select onchange="updateScore('${esc(s.id)}','${p}','action',this.value)">
+      <option value="">—</option>
+      <option value="Passed" ${(sc.action||'')==='Passed'?'selected':''}>Passed</option>
+      <option value="Failed" ${(sc.action||'')==='Failed'?'selected':''}>Failed</option>
+      <option value="Inc" ${(sc.action||'')==='Inc'?'selected':''}>Inc</option>
+    </select></td>`;
+
+    return `<tr data-id="${esc(s.id)}">${tds}</tr>`;
+  }).join('');
+
+  document.getElementById('grade-tbl-wrap').innerHTML=`
+    <table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function updateScore(sid, period, key, val){
+  const s=STATE.students.find(x=>x.id===sid);
+  if(!s) return;
+  if(!s.scores[period]) s.scores[period]={};
+  if(key==='action') s.scores[period][key]=val;
+  else s.scores[period][key]=val===''?null:parseFloat(val);
+}
+
+function saveGrades(){
+  // collect all inputs from visible table
+  document.querySelectorAll('#grade-tbl-wrap tbody tr').forEach(row=>{
+    const s=STATE.students.find(x=>x.id===row.dataset.id);
+    if(!s) return;
+    if(!s.scores[currentPeriod]) s.scores[currentPeriod]={};
+    row.querySelectorAll('input[type=number]').forEach(inp=>{
+      // find key from onchange attr
+      const oc=inp.getAttribute('onchange')||'';
+      const m=oc.match(/'([^']+)'\)$/);
+      if(m) s.scores[currentPeriod][m[1]]=inp.value===''?null:parseFloat(inp.value);
+    });
+    const sel=row.querySelector('select');
+    if(sel) s.scores[currentPeriod]['action']=sel.value;
+  });
+  saveState();
+  renderGradeTable();
+  document.getElementById('grade-msg').innerHTML='<div class="msg msg-ok">✓ Grades saved! Students can now see updated scores.</div>';
+  setTimeout(()=>document.getElementById('grade-msg').innerHTML='',4000);
+}
+
+// ════════════════════════════════════════════════
+// GRADESHEET UPLOAD & PARSE
+// ════════════════════════════════════════════════
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('dz-over');
+  handleFiles(e.dataTransfer.files);
+}
+
+function handleFiles(files){
+  if(!files||!files.length) return;
+  document.getElementById('upload-log').style.display='block';
+  document.getElementById('upload-log-items').innerHTML='';
+  Array.from(files).forEach(file=>{
+    const ext = file.name.split('.').pop().toLowerCase();
+    if(!['xlsx','xlsm','xls'].includes(ext)){
+      logUpload('err', file.name, '✗ Unsupported file type. Please upload .xlsm or .xlsx files.', []);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => parseGradesheet(file.name, e.target.result);
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseGradesheet(filename, arrayBuffer){
+  try {
+    const wb = XLSX.read(arrayBuffer, {type:'array', cellDates:true});
+
+    // Detect section from filename (3B or 3D) or from sheet content
+    let detectedSection = null;
+    const fnUpper = filename.toUpperCase();
+    if(fnUpper.includes('3B')) detectedSection='3B';
+    else if(fnUpper.includes('3D')) detectedSection='3D';
+
+    // Try to find GRADESHEET sheet
+    const sheetName = wb.SheetNames.find(n=>n.toUpperCase().includes('GRADESHEET') && !n.toUpperCase().includes('MID'));
+    if(!sheetName){
+      logUpload('err', filename, '✗ Could not find a GRADESHEET tab in this file.', []);
+      return;
+    }
+
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+
+    // Find student data rows: look for rows where col index 3 is a number (ID) and col 5 is a string (name)
+    let updated=0, skipped=0, notFound=0;
+    const log=[];
+
+    rows.forEach(row=>{
+      if(!row) return;
+      // ID is in column index 3, Name in col 5, grades from col 9 onward
+      const rawId = row[3];
+      const rawName = row[5];
+      if(!rawId || !rawName) return;
+      // ID must be numeric-ish
+      const idStr = String(rawId).trim().replace(/\.0+$/, '');
+      if(!/^\d{6,}$/.test(idStr)) return;
+      // Name must be a string with a comma (LAST, First format)
+      if(typeof rawName !== 'string' || !rawName.includes(',')) return;
+
+      // Parse grade columns
+      // Col 9 = Prelim CS, col 10 = Prelim PT, col 11 = Prelim Avg
+      // Col 12 = Midterm CS, col 13 = Midterm PT, col 14 = Midterm Avg
+      // Col 15 = Finals CS, col 16 = Finals PT, col 17 = Finals Avg
+      // Col 18 = Final Rating, col 20 = Action Taken
+      const pg_cs  = toNum(row[9]);
+      const pg_pt  = toNum(row[10]);
+      const mg_cs  = toNum(row[12]);
+      const mg_pt  = toNum(row[13]);
+      const fg_cs  = toNum(row[15]);
+      const fg_pt  = toNum(row[16]);
+      const action = row[20] ? String(row[20]).trim() : null;
+
+      // Find student in STATE by ID
+      const student = STATE.students.find(s=>s.id===idStr);
+      if(!student){
+        notFound++;
+        log.push(`⚠ ID ${idStr} (${rawName.trim()}) — not found in app`);
+        return;
+      }
+
+      // Update scores — preserve existing individual component scores, only update CS/PT totals
+      if(!student.scores) student.scores={prelim:{},midterm:{},finals:{}};
+      if(pg_cs!==null){ student.scores.prelim.pg_cs=pg_cs; }
+      if(pg_pt!==null){ student.scores.prelim.pg_pt=pg_pt; }
+      if(mg_cs!==null){ student.scores.midterm.mg_cs=mg_cs; }
+      if(mg_pt!==null){ student.scores.midterm.mg_pt=mg_pt; }
+      if(fg_cs!==null){ student.scores.finals.fg_cs=fg_cs; }
+      if(fg_pt!==null){ student.scores.finals.fg_pt=fg_pt; }
+      if(action){ student.scores.prelim.action=action; }
+
+      updated++;
+    });
+
+    saveState();
+    renderGradeTable();
+    renderIdList();
+
+    const summary=[
+      `✓ ${updated} student${updated!==1?'s':''} updated`,
+      skipped>0?`${skipped} skipped`:'',
+      notFound>0?`${notFound} IDs not matched`:''
+    ].filter(Boolean).join(' · ');
+
+    logUpload(updated>0?'ok':'warn', filename, summary, log, detectedSection);
+
+  } catch(err){
+    logUpload('err', filename, `✗ Error reading file: ${err.message}`, []);
+  }
+}
+
+function toNum(v){
+  if(v===null||v===undefined||v==='') return null;
+  const n=parseFloat(v);
+  return isNaN(n)?null:n;
+}
+
+function logUpload(type, filename, summary, details, section){
+  const icons={ok:'✅',err:'❌',warn:'⚠️'};
+  const sectionTag = section?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:8px;background:rgba(37,99,235,.1);color:var(--accent);">Section ${section}</span>`:'';
+  const detailHtml = details.length
+    ? `<div style="margin-top:8px;max-height:120px;overflow-y:auto;background:rgba(0,0,0,.04);border-radius:6px;padding:8px 10px;">
+        ${details.slice(0,20).map(d=>`<div style="font-size:11px;color:var(--text3);margin-bottom:2px;">${esc(d)}</div>`).join('')}
+        ${details.length>20?`<div style="font-size:11px;color:var(--text3);">…and ${details.length-20} more</div>`:''}
+       </div>` : '';
+  const html=`<div class="upload-item ${type}">
+    <div class="upload-icon">${icons[type]}</div>
+    <div class="upload-detail">
+      <div class="upload-filename">${esc(filename)}${sectionTag}</div>
+      <div class="upload-stats">${esc(summary)}</div>
+      ${detailHtml}
+    </div>
+  </div>`;
+  document.getElementById('upload-log-items').insertAdjacentHTML('beforeend', html);
+}
+
+// ── Init ────────────────────────────────────────
+renderIdList(); renderCidTable();
+</script>
+</body>
+</html>
